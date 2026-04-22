@@ -59,19 +59,63 @@ function hbn(name,type){
   return m[name]||'#CCCCCC';
 }
 
-function login(){
-  const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPass').value;
-  const err=document.getElementById('loginError');
-  const u=JSON.parse(localStorage.getItem('eventique_users')||'[]').find(x=>x.email===e&&x.password===p);
-  if(!u){err.classList.add('show');return;}err.classList.remove('show');currentUser=u;localStorage.setItem('eventique_session',JSON.stringify(u));afterLogin();
+async function login() {
+    const e = document.getElementById('loginEmail').value.trim();
+    const p = document.getElementById('loginPass').value;
+    const err = document.getElementById('loginError');
+
+    // This part talks to REAL database now
+    const response = await fetch('http://localhost:3000/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: e, password: p })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        err.classList.remove('show');
+        currentUser = data.user;
+        // Save only the active session so it stays logged in on refresh
+        localStorage.setItem('eventique_session', JSON.stringify(data.user));
+        
+        // This part switches the screen to your dashboard
+        document.getElementById('loginPage').classList.remove('active');
+        document.getElementById('dashPage').classList.add('active');
+        document.getElementById('userNameDisplay').textContent = data.user.name;
+        afterLogin(); 
+    } else {
+        err.classList.add('show');
+    }
 }
-function register(){
-  const n=document.getElementById('regName').value.trim(),e=document.getElementById('regEmail').value.trim(),p=document.getElementById('regPass').value;
-  const err=document.getElementById('regError');
-  if(!n||!e||p.length<6){err.textContent='Please fill in all fields correctly.';err.classList.add('show');return;}
-  const users=JSON.parse(localStorage.getItem('eventique_users')||'[]');
-  if(users.find(u=>u.email===e)){err.textContent='An account with this email already exists.';err.classList.add('show');return;}
-  const user={name:n,email:e,password:p};users.push(user);localStorage.setItem('eventique_users',JSON.stringify(users));currentUser=user;localStorage.setItem('eventique_session',JSON.stringify(user));afterLogin();
+async function register() {
+    const n = document.getElementById('regName').value.trim();
+    const e = document.getElementById('regEmail').value.trim();
+    const p = document.getElementById('regPass').value;
+    const err = document.getElementById('regError');
+
+    if (!n || !e || p.length < 6) {
+        err.textContent = 'Please fill in all fields correctly.';
+        err.classList.add('show');
+        return;
+    }
+
+    // This talks to server.js
+    const response = await fetch('http://localhost:3000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: n, email: e, password: p })
+    });
+
+    if (response.ok) {
+        alert("Account created successfully! You can now log in.");
+        // Switch to login screen
+        document.getElementById('registerPage').classList.remove('active');
+        document.getElementById('loginPage').classList.add('active');
+    } else {
+        err.textContent = 'Registration failed. Email might already exist.';
+        err.classList.add('show');
+    }
 }
 function afterLogin(){
   document.getElementById('navAvatar').textContent=currentUser.name.charAt(0).toUpperCase();

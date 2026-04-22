@@ -54,15 +54,27 @@ app.get('/api/vendors', (req, res) => {
         res.json(rows);
     });
 });
-app.post('/api/register-customer',(req,res)=>{
+app.post('/api/register',(req,res)=>{
     const { name, email, password}=req.body;
     const sql = "INSERT INTO customers (name, email, password) VALUES (?,?, ?)";
     db.run (sql,[name, email, password], function(err){
         if (err) {
-            return
-            res.status(500).json ({error: err.message });
+            return res.status(500).json ({error: err.message });
         }
         res.json({ message:"Customer saved!" , id: this.lastID});
+    });
+});
+
+
+// 2. ADD THE LOGIN ROUTE
+app.post('/api/login', (req, res) => {
+    const { email, password } = req.body;
+    db.get(`SELECT * FROM CUSTOMERS WHERE email = ? AND password = ?`, [email, password], (err, row) => {
+        if (err || !row) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+        // Success! Send the user data back to the frontend
+        res.json({ message: "Login successful", user: row });
     });
 });
 app.listen(3000, () => console.log("Server running on http://localhost:3000"));
